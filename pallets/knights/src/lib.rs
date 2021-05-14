@@ -115,30 +115,30 @@ pub mod pallet {
 
             let latest_id = KnightCount::<T>::get().unwrap_or(0);
 
-            if let Some(id) = latest_id.checked_add(1) {
-                let knight_id = (id, &who).using_encoded(blake2_128);
+            let id = latest_id
+                .checked_add(1)
+                .ok_or(Error::<T>::KnightCountOverflow)?;
 
-                // NOTE:: how to test this?
-                ensure!(!<Knights<T>>::contains_key(id), "This id already exists");
+            let knight_id = (id, &who).using_encoded(blake2_128);
 
-                let k = Knight {
-                    name,
-                    id: knight_id,
-                };
+            // NOTE:: how to test this?
+            ensure!(!<Knights<T>>::contains_key(id), "This id already exists");
 
-                <Knights<T>>::insert(id, k);
-                <KnightCount<T>>::put(id);
+            let k = Knight {
+                name,
+                id: knight_id,
+            };
 
-                <KnightToOwner<T>>::insert(id, &who);
-                <OwnerToKnights<T>>::append(&who, id);
+            <Knights<T>>::insert(id, k);
+            <KnightCount<T>>::put(id);
 
-                // Emit an event.
-                Self::deposit_event(Event::KnightCreated(id, who));
+            <KnightToOwner<T>>::insert(id, &who);
+            <OwnerToKnights<T>>::append(&who, id);
 
-                return Ok(().into());
-            }
+            // Emit an event.
+            Self::deposit_event(Event::KnightCreated(id, who));
 
-            Err(Error::<T>::KnightCountOverflow)?
+            return Ok(().into());
         }
     }
 }
