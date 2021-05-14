@@ -96,8 +96,8 @@ pub mod pallet {
                 return Err(Error::<T>::KnightNotFound)?;
             }
 
-            <KnightToOwner<T>>::remove(id);
-            <KnightToOwner<T>>::insert(id, &to);
+            KnightToOwner::<T>::remove(id);
+            KnightToOwner::<T>::insert(id, &to);
 
             Self::deposit_event(Event::KnightTransferred(id, who, to));
 
@@ -122,18 +122,18 @@ pub mod pallet {
             let knight_id = (id, &who).using_encoded(blake2_128);
 
             // NOTE:: how to test this?
-            ensure!(!<Knights<T>>::contains_key(id), "This id already exists");
+            ensure!(!Knights::<T>::contains_key(id), "This id already exists");
 
             let k = Knight {
                 name,
                 id: knight_id,
             };
 
-            <Knights<T>>::insert(id, k);
-            <KnightCount<T>>::put(id);
+            Knights::<T>::insert(id, k);
+            KnightCount::<T>::put(id);
 
-            <KnightToOwner<T>>::insert(id, &who);
-            <OwnerToKnights<T>>::append(&who, id);
+            KnightToOwner::<T>::insert(id, &who);
+            OwnerToKnights::<T>::append(&who, id);
 
             // Emit an event.
             Self::deposit_event(Event::KnightCreated(id, who));
