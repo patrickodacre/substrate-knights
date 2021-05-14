@@ -16,6 +16,7 @@ mod benchmarking;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use frame_support::traits::Vec;
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
 
