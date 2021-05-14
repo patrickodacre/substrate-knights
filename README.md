@@ -1,4 +1,8 @@
-# Substrate Node Template
+# Knights Pallet
+
+Based on the (Substrate Collectables Workshop)[https://www.shawntabrizi.com/substrate-collectables-workshop/#/].
+
+## Substrate Node Template
 
 [![Try on playground](https://img.shields.io/badge/Playground-Node_Template-brightgreen?logo=Parity%20Substrate)](https://playground.substrate.dev/?deploy=node-template)
 
@@ -6,7 +10,7 @@ A fresh FRAME-based [Substrate](https://www.substrate.io/) node, ready for hacki
 
 ## Getting Started
 
-Follow the steps below to get started with the Node Template, or get it up and running right from your browser 
+Follow the steps below to get started with the Node Template, or get it up and running right from your browser
 in just a few clicks using [Playground](https://playground.substrate.dev/) :hammer_and_wrench:
 
 ### Using Nix
