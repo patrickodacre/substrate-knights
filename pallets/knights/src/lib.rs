@@ -71,6 +71,7 @@ pub mod pallet {
         /// Knight Count Overflow
         KnightCountOverflow,
         KnightNotFound,
+        KnightAlreadyExists,
         NotRightfulOwner,
     }
 
@@ -122,7 +123,10 @@ pub mod pallet {
             let knight_id = (id, &who).using_encoded(blake2_128);
 
             // NOTE:: how to test this?
-            ensure!(!Knights::<T>::contains_key(id), "This id already exists");
+            ensure!(
+                !Knights::<T>::contains_key(id),
+                Error::<T>::KnightAlreadyExists
+            );
 
             let k = Knight {
                 name,
