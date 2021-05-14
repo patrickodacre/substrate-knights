@@ -70,7 +70,8 @@ pub mod pallet {
     pub enum Error<T> {
         /// Knight Count Overflow
         KnightCountOverflow,
-        KnightOwnerNotFound,
+        KnightNotFound,
+        NotRightfulOwner,
     }
 
     #[pallet::hooks]
@@ -90,9 +91,9 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             if let Some(owner) = KnightToOwner::<T>::get(&id) {
-                ensure!(owner == who, "Caller not Knight Owner");
+                ensure!(owner == who, Error::<T>::NotRightfulOwner);
             } else {
-                return Err(Error::<T>::KnightOwnerNotFound)?;
+                return Err(Error::<T>::KnightNotFound)?;
             }
 
             <KnightToOwner<T>>::remove(id);

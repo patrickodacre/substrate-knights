@@ -1,5 +1,5 @@
 use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 
 #[test]
 fn can_create_knight() {
@@ -132,5 +132,30 @@ fn can_transfer_knight() {
 
         let owner = KnightModule::knight_to_owner(&1).unwrap();
         assert_eq!(owner, 2);
+    });
+}
+
+#[test]
+fn non_owner_cannot_transfer_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Alfred the Great".as_bytes().to_vec()
+        ));
+
+        assert_err!(
+            KnightModule::transfer_knight(Origin::signed(2), 1, 2),
+            Error::<Test>::NotRightfulOwner
+        );
+    });
+}
+
+#[test]
+fn cannot_transfer_non_existant_knight() {
+    new_test_ext().execute_with(|| {
+        assert_err!(
+            KnightModule::transfer_knight(Origin::signed(1), 1, 2),
+            Error::<Test>::KnightNotFound
+        );
     });
 }
