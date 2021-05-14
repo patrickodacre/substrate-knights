@@ -89,6 +89,9 @@ pub mod pallet {
             let latest_id = KnightCount::<T>::get().unwrap_or(0);
 
             if let Some(id) = latest_id.checked_add(1) {
+                // NOTE:: how to test this?
+                ensure!(!<Knights<T>>::contains_key(id), "This id already exists");
+
                 <Knights<T>>::insert(id, k);
                 <KnightCount<T>>::put(id);
 
