@@ -115,3 +115,22 @@ fn knight_has_unique_id_even_with_identical_names_and_owners() {
         assert_ne!(sir_evan1.id, sir_evan2.id);
     });
 }
+
+#[test]
+fn can_transfer_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Beric the Briton".as_bytes().to_vec()
+        ));
+
+        let owner = KnightModule::knight_to_owner(&1).unwrap();
+
+        assert_eq!(owner, 1);
+
+        KnightModule::transfer_knight(Origin::signed(1), 1, 2).unwrap();
+
+        let owner = KnightModule::knight_to_owner(&1).unwrap();
+        assert_eq!(owner, 2);
+    });
+}

@@ -70,6 +70,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Knight Count Overflow
         KnightCountOverflow,
+        KnightOwnerNotFound,
     }
 
     #[pallet::hooks]
@@ -80,6 +81,28 @@ pub mod pallet {
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn transfer_knight(
+            origin: OriginFor<T>,
+            id: u64,
+            to: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            if let Some(owner) = KnightToOwner::<T>::get(&id) {
+                ensure!(owner == who, "Caller not Knight Owner");
+            } else {
+                return Err(Error::<T>::KnightOwnerNotFound)?;
+            }
+
+            <KnightToOwner<T>>::remove(id);
+            <KnightToOwner<T>>::insert(id, &to);
+
+            Self::deposit_event(Event::KnightTransferred(id, who, to));
+
+            Ok(().into())
+        }
+
         /// An example dispatchable that takes a singles value as a parameter, writes the value to
         /// storage and emits an event. This function must be dispatched by a signed extrinsic.
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,4))]
