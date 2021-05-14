@@ -36,7 +36,7 @@ fn can_get_knight_count() {
 }
 
 #[test]
-fn can_get_knights_creator() {
+fn can_get_knights_owner() {
     new_test_ext().execute_with(|| {
         assert_ok!(KnightModule::create_knight(
             Origin::signed(1),
@@ -48,16 +48,16 @@ fn can_get_knights_creator() {
             "Daniel the Courageous".as_bytes().to_vec()
         ));
 
-        let creator = KnightModule::knight_to_creator(&1).unwrap();
-        assert_eq!(creator, 1);
+        let owner = KnightModule::knight_to_owner(&1).unwrap();
+        assert_eq!(owner, 1);
 
-        let creator = KnightModule::knight_to_creator(&2).unwrap();
-        assert_eq!(creator, 1);
+        let owner = KnightModule::knight_to_owner(&2).unwrap();
+        assert_eq!(owner, 1);
     });
 }
 
 #[test]
-fn can_get_creators_knights() {
+fn can_get_owners_knights() {
     new_test_ext().execute_with(|| {
         assert_ok!(KnightModule::create_knight(
             Origin::signed(1),
@@ -74,7 +74,7 @@ fn can_get_creators_knights() {
             "Sir Evan".as_bytes().to_vec()
         ));
 
-        let knights = KnightModule::creator_to_knights(&1).unwrap();
+        let knights = KnightModule::owner_to_knights(&1).unwrap();
 
         assert_eq!(knights.len(), 3);
 

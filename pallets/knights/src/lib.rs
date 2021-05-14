@@ -49,18 +49,20 @@ pub mod pallet {
     pub type Knights<T: Config> = StorageMap<_, Blake2_128Concat, u64, Knight>;
 
     #[pallet::storage]
-    #[pallet::getter(fn knight_to_creator)]
-    pub type KnightToCreator<T: Config> = StorageMap<_, Blake2_128Concat, u64, T::AccountId>;
+    #[pallet::getter(fn knight_to_owner)]
+    pub type KnightToOwner<T: Config> = StorageMap<_, Blake2_128Concat, u64, T::AccountId>;
 
     #[pallet::storage]
-    #[pallet::getter(fn creator_to_knights)]
-    pub type CreatorToKnights<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>>;
+    #[pallet::getter(fn owner_to_knights)]
+    pub type OwnerToKnights<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>>;
 
     #[pallet::event]
     #[pallet::metadata(T::AccountId = "AccountId")]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         KnightCreated(u64, T::AccountId),
+        /// [knight_id, from_account_id, to_account_id]
+        KnightTransferred(u64, T::AccountId, T::AccountId),
     }
 
     // Errors inform users that something went wrong.
@@ -103,8 +105,8 @@ pub mod pallet {
                 <Knights<T>>::insert(id, k);
                 <KnightCount<T>>::put(id);
 
-                <KnightToCreator<T>>::insert(id, &who);
-                <CreatorToKnights<T>>::append(&who, id);
+                <KnightToOwner<T>>::insert(id, &who);
+                <OwnerToKnights<T>>::append(&who, id);
 
                 // Emit an event.
                 Self::deposit_event(Event::KnightCreated(id, who));
