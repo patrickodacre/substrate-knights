@@ -94,3 +94,24 @@ fn can_get_creators_knights() {
         assert_eq!(sir_evan.name, "Sir Evan".as_bytes().to_vec());
     });
 }
+
+#[test]
+fn knight_has_unique_id_even_with_identical_names_and_owners() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Evan".as_bytes().to_vec()
+        ));
+
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Evan".as_bytes().to_vec()
+        ));
+
+        let sir_evan1 = KnightModule::knights(&1).unwrap();
+        let sir_evan2 = KnightModule::knights(&2).unwrap();
+
+        println!("id is :: {:?}", sir_evan1.id);
+        assert_ne!(sir_evan1.id, sir_evan2.id);
+    });
+}

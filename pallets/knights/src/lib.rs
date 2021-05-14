@@ -19,6 +19,8 @@ pub mod pallet {
     use frame_support::traits::Vec;
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
+    // thx to macro magic, we get to directly call this trait function
+    use sp_io::hashing::blake2_128;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -34,6 +36,7 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "std", derive(Debug))]
     pub struct Knight {
+        pub id: [u8; 16],
         pub name: Vec<u8>,
     }
 
@@ -84,13 +87,18 @@ pub mod pallet {
             // https://substrate.dev/docs/en/knowledgebase/runtime/origin
             let who = ensure_signed(origin)?;
 
-            let k = Knight { name };
-
             let latest_id = KnightCount::<T>::get().unwrap_or(0);
 
             if let Some(id) = latest_id.checked_add(1) {
+                let knight_id = (id, &who).using_encoded(blake2_128);
+
                 // NOTE:: how to test this?
                 ensure!(!<Knights<T>>::contains_key(id), "This id already exists");
+
+                let k = Knight {
+                    name,
+                    id: knight_id,
+                };
 
                 <Knights<T>>::insert(id, k);
                 <KnightCount<T>>::put(id);
