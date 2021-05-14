@@ -39,6 +39,7 @@ pub use frame_support::{
 };
 use pallet_transaction_payment::CurrencyAdapter;
 
+pub use pallet_knights;
 /// Import the template pallet.
 pub use pallet_template;
 
@@ -268,6 +269,8 @@ impl pallet_sudo::Config for Runtime {
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
+impl pallet_knights::Config for Runtime {
+    type Event = Event;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -288,6 +291,7 @@ construct_runtime!(
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
 	}
+        KnightModule: pallet_knight::{Module, Call, Storage, Event<T>},
 );
 
 /// The address format for describing accounts.
@@ -488,4 +492,5 @@ impl_runtime_apis! {
 			Ok(batches)
 		}
 	}
+            add_benchmark!(params, batches, pallet_knights, KnightModule);
 }
