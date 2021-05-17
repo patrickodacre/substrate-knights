@@ -91,11 +91,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            if let Some(owner) = KnightToOwner::<T>::get(&id) {
-                ensure!(owner == who, Error::<T>::NotRightfulOwner);
-            } else {
-                return Err(Error::<T>::KnightNotFound)?;
-            }
+            let owner = KnightToOwner::<T>::get(&id).ok_or(Error::<T>::KnightNotFound)?;
+            ensure!(owner == who, Error::<T>::NotRightfulOwner);
 
             KnightToOwner::<T>::remove(id);
             KnightToOwner::<T>::insert(id, &to);
