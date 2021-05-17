@@ -115,7 +115,7 @@ pub mod pallet {
                     .as_ref()
                     .unwrap()
                     .binary_search_by(|probe| probe.cmp(&id))
-                    .expect("We already checked that we have the correct owner; qed");
+                    .expect("Knight not found. Perhaps it was already transferred.");
 
                 let removed_knight_id = ids.as_mut().unwrap().remove(pos);
 
