@@ -126,14 +126,26 @@ fn can_transfer_knight() {
             "Beric the Briton".as_bytes().to_vec()
         ));
 
-        let owner = KnightModule::knight_to_owner(&1).unwrap();
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan of Chessington".as_bytes().to_vec()
+        ));
 
+        let owner = KnightModule::knight_to_owner(&1).unwrap();
         assert_eq!(owner, 1);
+        let knights = KnightModule::owner_to_knights(&1).unwrap();
+        assert_eq!(knights.len(), 2);
+        let knights = KnightModule::owner_to_knights(&2).unwrap_or(Vec::<u64>::new());
+        assert_eq!(knights.len(), 0);
 
         KnightModule::transfer_knight(Origin::signed(1), 1, 2).unwrap();
 
         let owner = KnightModule::knight_to_owner(&1).unwrap();
         assert_eq!(owner, 2);
+        let knights = KnightModule::owner_to_knights(&1).unwrap();
+        assert_eq!(knights.len(), 1);
+        let knights = KnightModule::owner_to_knights(&2).unwrap();
+        assert_eq!(knights.len(), 1);
     });
 }
 

@@ -100,6 +100,32 @@ pub mod pallet {
             KnightToOwner::<T>::remove(id);
             KnightToOwner::<T>::insert(id, &to);
 
+            let knight_id = OwnerToKnights::<T>::mutate(&owner, |ids| {
+                // mutatble reference
+                let pos = ids
+                    .as_ref()
+                    .unwrap()
+                    .binary_search_by(|probe| probe.cmp(&id))
+                    .expect("We already checked that we have the correct owner; qed");
+
+                let removed_knight_id = ids.as_mut().unwrap().remove(pos);
+
+                removed_knight_id
+            });
+
+            OwnerToKnights::<T>::mutate(&to, |ids| {
+                match ids
+                    .as_ref()
+                    .unwrap_or(&Vec::<u64>::new())
+                    .binary_search_by(|probe| probe.cmp(&id))
+                {
+                    Ok(_pos) => {} // should not be found since we're transferring here
+                    Err(_pos) => {}
+                }
+            });
+
+            OwnerToKnights::<T>::append(&to, knight_id);
+
             Self::deposit_event(Event::KnightTransferred(id, who, to));
 
             Ok(().into())
