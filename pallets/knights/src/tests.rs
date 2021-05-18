@@ -115,6 +115,7 @@ fn knight_has_unique_id_even_with_identical_names_and_owners() {
         let sir_evan2 = KnightModule::knights(&2).unwrap();
 
         assert_ne!(sir_evan1.id, sir_evan2.id);
+        assert_ne!(sir_evan1.dna, sir_evan2.dna);
     });
 }
 

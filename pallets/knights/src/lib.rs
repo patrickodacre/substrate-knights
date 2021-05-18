@@ -36,7 +36,8 @@ pub mod pallet {
     #[derive(Encode, Decode, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "std", derive(Debug))]
     pub struct Knight {
-        pub id: [u8; 16],
+        pub id: u64,
+        pub dna: [u8; 16],
         pub name: Vec<u8>,
     }
 
@@ -140,33 +141,39 @@ pub mod pallet {
 
             let latest_id = KnightCount::<T>::get().unwrap_or(0);
 
-            let id = latest_id
+            let new_id = latest_id
                 .checked_add(1)
                 .ok_or(Error::<T>::KnightCountOverflow)?;
 
-            let knight_id = (id, &who).using_encoded(blake2_128);
-
             // NOTE:: how to test this?
             ensure!(
-                !Knights::<T>::contains_key(id),
+                !Knights::<T>::contains_key(new_id),
                 Error::<T>::KnightAlreadyExists
             );
 
-            let k = Knight {
+            let knight = Knight {
+                id: new_id,
                 name,
-                id: knight_id,
+                dna: (new_id, &who).using_encoded(blake2_128),
             };
 
-            Knights::<T>::insert(id, k);
-            KnightCount::<T>::put(id);
-
-            KnightToOwner::<T>::insert(id, &who);
-            OwnerToKnights::<T>::append(&who, id);
-
-            // Emit an event.
-            Self::deposit_event(Event::KnightCreated(id, who));
+            Self::_mint(who, knight)?;
 
             return Ok(().into());
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        fn _mint(owner: T::AccountId, knight: Knight) -> Result<(), &'static str> {
+            Knights::<T>::insert(knight.id, &knight);
+            KnightCount::<T>::put(knight.id);
+            KnightToOwner::<T>::insert(knight.id, &owner);
+            OwnerToKnights::<T>::append(&owner, knight.id);
+
+            // Emit an event.
+            Self::deposit_event(Event::KnightCreated(knight.id, owner));
+
+            Ok(())
         }
     }
 }
