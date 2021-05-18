@@ -110,7 +110,7 @@ pub mod pallet {
             KnightToOwner::<T>::insert(id, &to);
 
             let knight_id = OwnerToKnights::<T>::mutate(&owner, |ids| {
-                // mutatble reference
+                // mutable reference
                 let pos = ids
                     .as_ref()
                     .unwrap()
