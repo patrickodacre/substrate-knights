@@ -122,7 +122,16 @@ pub mod pallet {
                 removed_knight_id
             });
 
-            OwnerToKnights::<T>::append(&to, knight_id);
+            // OwnerToKnights::<T>::append(&to, knight_id);
+            // or...
+            OwnerToKnights::<T>::mutate(&to, |ids| {
+                println!("IDS::: {:?}", ids);
+                if let Some(knight_ids) = ids {
+                    knight_ids.push(knight_id);
+                } else {
+                    *ids = Some(vec![knight_id]);
+                }
+            });
 
             Self::deposit_event(Event::KnightTransferred(id, who, to));
 
