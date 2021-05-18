@@ -94,22 +94,33 @@ pub mod pallet {
             let owner = KnightToOwner::<T>::get(&id).ok_or(Error::<T>::KnightNotFound)?;
             ensure!(owner == who, Error::<T>::NotRightfulOwner);
 
-            // you could argue this check really isn't needed;
-            // nevertheless, if we did want to check, we'd do it
-            // before writing to storage below.
-            if let Some(knight_ids) = OwnerToKnights::<T>::get(&to) {
-                match knight_ids.iter().position(|&k_id| k_id == id) {
-                    Some(_pos) => {
-                        return Err(Error::<T>::KnightAlreadyExists)?;
-                    }
-                    _ => {}
-                }
-            }
-
             KnightToOwner::<T>::remove(id);
             KnightToOwner::<T>::insert(id, &to);
 
-            let knight_id = OwnerToKnights::<T>::mutate(&owner, |ids| {
+            // OwnerToKnights::<T>::append(&to, knight_id);
+            // or...
+            OwnerToKnights::<T>::mutate(&to, |ids| -> Result<_, Error<T>> {
+                match ids
+                    .as_mut()
+                    .unwrap_or(&mut Vec::<u64>::new())
+                    .binary_search(&id)
+                {
+                    Ok(_pos) => {
+                        return Err(Error::<T>::KnightAlreadyExists)?;
+                    }
+                    Err(_pos) => {
+                        if let Some(knight_ids) = ids {
+                            knight_ids.push(id);
+                        } else {
+                            *ids = Some(vec![id]);
+                        }
+
+                        Ok(())
+                    }
+                }
+            })?;
+
+            OwnerToKnights::<T>::mutate(&owner, |ids| {
                 // mutable reference
                 let pos = ids
                     .as_ref()
@@ -117,20 +128,7 @@ pub mod pallet {
                     .binary_search_by(|probe| probe.cmp(&id))
                     .expect("Knight not found. Perhaps it was already transferred.");
 
-                let removed_knight_id = ids.as_mut().unwrap().remove(pos);
-
-                removed_knight_id
-            });
-
-            // OwnerToKnights::<T>::append(&to, knight_id);
-            // or...
-            OwnerToKnights::<T>::mutate(&to, |ids| {
-                println!("IDS::: {:?}", ids);
-                if let Some(knight_ids) = ids {
-                    knight_ids.push(knight_id);
-                } else {
-                    *ids = Some(vec![knight_id]);
-                }
+                ids.as_mut().unwrap().remove(pos);
             });
 
             Self::deposit_event(Event::KnightTransferred(id, who, to));
