@@ -19,12 +19,13 @@ pub mod pallet {
     use frame_support::traits::Vec;
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
+    use serde::{Deserialize, Serialize};
     // thx to macro magic, we get to directly call this trait function
     use sp_io::hashing::blake2_128;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: pallet_balances::Config + frame_system::Config {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
     }
@@ -33,29 +34,77 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    #[derive(Encode, Decode, Clone, PartialEq, Eq)]
+    #[derive(Encode, Decode, Deserialize, Serialize, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "std", derive(Debug))]
-    pub struct Knight {
+    pub struct Knight<Balance> {
         pub id: u64,
         pub dna: [u8; 16],
         pub name: Vec<u8>,
+        pub wealth: Balance,
+        pub gen: u64,
     }
 
     #[pallet::storage]
+    #[pallet::getter(fn thing)]
+    pub type Thing<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn knight_count)]
-    pub type KnightCount<T: Config> = StorageValue<_, u64>;
+    pub type KnightCount<T: Config> = StorageValue<_, u64, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn knights)]
-    pub type Knights<T: Config> = StorageMap<_, Blake2_128Concat, u64, Knight>;
+    pub type Knights<T: Config> =
+        StorageMap<_, Blake2_128Concat, u64, Knight<T::Balance>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn knight_to_owner)]
-    pub type KnightToOwner<T: Config> = StorageMap<_, Blake2_128Concat, u64, T::AccountId>;
+    pub type KnightToOwner<T: Config> =
+        StorageMap<_, Blake2_128Concat, u64, T::AccountId, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn owner_to_knights)]
-    pub type OwnerToKnights<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>>;
+    pub type OwnerToKnights<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>, OptionQuery>;
+
+    // The genesis config type.
+    #[pallet::genesis_config]
+    pub struct GenesisConfig<T: Config> {
+        pub thing: u64,
+        // pub bar: Vec<(T::AccountId, T::Balance)>,
+        pub knights: Vec<(u64, Knight<T::Balance>)>,
+    }
+
+    // The default value for the genesis config type.
+    #[cfg(feature = "std")]
+    impl<T: Config> Default for GenesisConfig<T> {
+        fn default() -> Self {
+            Self {
+                thing: Default::default(),
+                // bar: Default::default(),
+                knights: Default::default(),
+            }
+        }
+    }
+
+    // The build of genesis for the pallet.
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+        fn build(&self) {
+            <Thing<T>>::put(&self.thing);
+            for (id, account_id) in &self.knights {
+                let knight = Knight {
+                    id: 1,
+                    name: "OriginKnight".as_bytes().to_vec(),
+                    dna: (1).using_encoded(blake2_128),
+                    wealth: 0u8.into(),
+                    gen: 0,
+                };
+
+                Knights::<T>::insert(id, knight);
+            }
+        }
+    }
 
     #[pallet::event]
     #[pallet::metadata(T::AccountId = "AccountId")]
@@ -155,6 +204,8 @@ pub mod pallet {
                 id: new_id,
                 name,
                 dna: (new_id, &who).using_encoded(blake2_128),
+                wealth: 0u8.into(),
+                gen: 0,
             };
 
             Self::_mint(who, knight)?;
@@ -164,7 +215,7 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        fn _mint(owner: T::AccountId, knight: Knight) -> Result<(), &'static str> {
+        fn _mint(owner: T::AccountId, knight: Knight<T::Balance>) -> Result<(), &'static str> {
             Knights::<T>::insert(knight.id, &knight);
             KnightCount::<T>::put(knight.id);
             KnightToOwner::<T>::insert(knight.id, &owner);

@@ -274,6 +274,7 @@ impl pallet_template::Config for Runtime {
 }
 
 impl pallet_knights::Config for Runtime {
+    type Balance = Balance;
     type Event = Event;
 }
 
@@ -294,7 +295,7 @@ construct_runtime!(
         Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
         // Include the custom logic from the pallet-template in the runtime.
         TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
-        KnightModule: pallet_knights::{Module, Call, Storage, Event<T>},
+        KnightModule: pallet_knights::{Module, Call, Storage, Event<T>, Config<T>},
     }
 );
 
