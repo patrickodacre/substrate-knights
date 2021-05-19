@@ -41,6 +41,7 @@ pub mod pallet {
         pub dna: [u8; 16],
         pub name: Vec<u8>,
         pub wealth: Balance,
+        pub price: Balance,
         pub gen: u64,
     }
 
@@ -98,6 +99,7 @@ pub mod pallet {
                     name: "OriginKnight".as_bytes().to_vec(),
                     dna: (1).using_encoded(blake2_128),
                     wealth: 0u8.into(),
+                    price: 0u8.into(),
                     gen: 0,
                 };
 
@@ -113,6 +115,8 @@ pub mod pallet {
         KnightCreated(u64, T::AccountId),
         /// [knight_id, from_account_id, to_account_id]
         KnightTransferred(u64, T::AccountId, T::AccountId),
+        /// [knight_id, price]
+        KnightPriceSet(u64, T::Balance),
     }
 
     // Errors inform users that something went wrong.
@@ -179,6 +183,27 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,1))]
+        pub fn set_price(
+            origin: OriginFor<T>,
+            knight_id: u64,
+            price: T::Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            let mut knight = Knights::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
+            let owner = KnightToOwner::<T>::get(&knight_id).ok_or(Error::<T>::KnightNotFound)?;
+
+            ensure!(owner == who, Error::<T>::NotRightfulOwner);
+
+            knight.price = price;
+
+            Knights::<T>::insert(knight_id, knight);
+
+            Self::deposit_event(Event::KnightPriceSet(knight_id, price));
+
+            Ok(().into())
+        }
         /// An example dispatchable that takes a singles value as a parameter, writes the value to
         /// storage and emits an event. This function must be dispatched by a signed extrinsic.
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,4))]
@@ -205,6 +230,7 @@ pub mod pallet {
                 name,
                 dna: (new_id, &who).using_encoded(blake2_128),
                 wealth: 0u8.into(),
+                price: 0u8.into(),
                 gen: 0,
             };
 

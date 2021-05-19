@@ -20,6 +20,39 @@ fn can_create_knight() {
 }
 
 #[test]
+fn can_set_price_for_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan".as_bytes().to_vec()
+        ));
+
+        KnightModule::set_price(Origin::signed(1), 1, 100).expect("cannot set price");
+
+        let sir_rowan = KnightModule::knights(1).unwrap();
+
+        assert_eq!(sir_rowan.price, 100);
+    });
+}
+
+#[test]
+fn non_owner_cannot_set_price_for_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Cedric".as_bytes().to_vec(),
+        ));
+
+        let check = Origin::signed(1000);
+
+        assert_err!(
+            KnightModule::set_price(Origin::signed(10000), 1, 200),
+            Error::<Test>::NotRightfulOwner
+        );
+    });
+}
+
+#[test]
 fn can_get_knight_count() {
     new_test_ext().execute_with(|| {
         assert_ok!(KnightModule::create_knight(
