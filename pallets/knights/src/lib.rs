@@ -20,6 +20,10 @@ pub mod pallet {
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
     use serde::{Deserialize, Serialize};
+
+    use frame_support::traits::Currency;
+    use sp_runtime::traits::Zero;
+
     // thx to macro magic, we get to directly call this trait function
     use sp_io::hashing::blake2_128;
 
@@ -28,6 +32,10 @@ pub mod pallet {
     pub trait Config: pallet_balances::Config + frame_system::Config {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        // type Currency: Currency<<Self as frame_system::Config>::AccountId>;
+        // or...
+        type Currency: Currency<Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -210,6 +218,32 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        pub fn buy_knight(origin: OriginFor<T>, knight_id: u64) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            let knight = Knights::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
+
+            ensure!(
+                !knight.price.is_zero(),
+                "The knight you want to buy isn't for sale."
+            );
+
+            let owner = KnightToOwner::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
+
+            ensure!(owner != who, "You already own this Knight");
+
+            <pallet_balances::Pallet<T> as Currency<_>>::transfer(
+                &who,
+                &owner,
+                knight.price,
+                frame_support::traits::ExistenceRequirement::KeepAlive,
+            )?;
+
+            Ok(().into())
+        }
+
         /// An example dispatchable that takes a singles value as a parameter, writes the value to
         /// storage and emits an event. This function must be dispatched by a signed extrinsic.
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,5))]

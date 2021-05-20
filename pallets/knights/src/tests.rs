@@ -1,4 +1,7 @@
 use crate::{mock::*, Error};
+use frame_support::traits::Currency;
+use pallet_balances::Error as BalancesError;
+
 use frame_support::{assert_err, assert_noop, assert_ok};
 
 #[test]
@@ -19,6 +22,49 @@ fn can_create_knight() {
 
         let owner_knight_count = KnightModule::owner_to_knight_count(&1);
         assert_eq!(owner_knight_count, 1);
+    });
+}
+
+#[test]
+fn can_buy_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan".as_bytes().to_vec()
+        ));
+
+        KnightModule::set_price(Origin::signed(1), 1, 20).unwrap();
+
+        Balances::make_free_balance_be(&2, 50);
+        // KnightModule::buy_knight(Origin::signed(2), 1).unwrap();
+
+        // let owner = KnightModule::knight_to_owner(&2).unwrap();
+        // assert_eq!(owner, 2);
+    });
+}
+
+#[test]
+fn cannot_buy_knight_with_insufficient_funds() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan".as_bytes().to_vec()
+        ));
+
+        KnightModule::set_price(Origin::signed(1), 1, 100).unwrap();
+
+        Balances::make_free_balance_be(&1, 100);
+        Balances::make_free_balance_be(&2, 100);
+
+        let fb = Balances::free_balance(&2);
+        let tb = Balances::total_balance(&2);
+
+        println!("free balance {:?}", fb);
+        println!("total balance {:?}", tb);
+        // assert_err!(
+        // KnightModule::buy_knight(Origin::signed(2), 1),
+        // BalancesError::<Test>::InsufficientBalance,
+        // );
     });
 }
 

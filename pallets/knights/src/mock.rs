@@ -77,6 +77,7 @@ impl pallet_balances::Config for Test {
 // pub trait Config: pallet_balances::Config + frame_system::Config {
 impl pallet_knights::Config for Test {
     type Event = Event;
+    type Currency = Balances;
 }
 
 // Build genesis storage according to the mock runtime.
