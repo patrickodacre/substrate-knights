@@ -16,6 +16,9 @@ fn can_create_knight() {
 
         let knight_ids = KnightModule::owner_to_knights(&1).unwrap();
         assert_eq!(knight_ids.len(), 1);
+
+        let owner_knight_count = KnightModule::owner_to_knight_count(&1);
+        assert_eq!(owner_knight_count, 1);
     });
 }
 
