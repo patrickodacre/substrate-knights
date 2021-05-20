@@ -68,6 +68,11 @@ pub mod pallet {
     pub type OwnerToKnights<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>, OptionQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn owner_to_knight_count)]
+    pub type OwnerToKnightCount<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
+
     // The genesis config type.
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
