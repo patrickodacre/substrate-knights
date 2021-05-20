@@ -31,18 +31,12 @@ fn can_set_price_for_knight() {
         ));
 
         KnightModule::set_price(Origin::signed(1), 1, 100).expect("cannot set price");
-
-        // make_free_balance_be not found on struct
-        Balances::make_free_balance_be(&1, 100);
-        // associated function set_balanace is private
-        Balances::set_balance(Origin::signed(1), 1, 200, 20);
-        let ub = Balances::usable_balance(&1);
-
-        println!("ub :: {:?}", ub);
-
         let sir_rowan = KnightModule::knights(1).unwrap();
-
         assert_eq!(sir_rowan.price, 100);
+
+        KnightModule::set_price(Origin::signed(1), 1, 0).expect("cannot set price");
+        let sir_rowan = KnightModule::knights(1).unwrap();
+        assert_eq!(sir_rowan.price, 0);
     });
 }
 
