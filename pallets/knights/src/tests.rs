@@ -33,13 +33,19 @@ fn can_buy_knight() {
             "Sir Rowan".as_bytes().to_vec()
         ));
 
-        KnightModule::set_price(Origin::signed(1), 1, 20).unwrap();
-
         Balances::make_free_balance_be(&2, 50);
-        // KnightModule::buy_knight(Origin::signed(2), 1).unwrap();
 
-        // let owner = KnightModule::knight_to_owner(&2).unwrap();
-        // assert_eq!(owner, 2);
+        assert_eq!(Balances::free_balance(&1), 0);
+        assert_eq!(Balances::free_balance(&2), 50);
+
+        KnightModule::set_price(Origin::signed(1), 1, 20).unwrap();
+        KnightModule::buy_knight(Origin::signed(2), 1).unwrap();
+
+        assert_eq!(Balances::free_balance(&1), 20);
+        assert_eq!(Balances::free_balance(&2), 30);
+
+        let owner = KnightModule::knight_to_owner(&1).unwrap();
+        assert_eq!(owner, 2);
     });
 }
 

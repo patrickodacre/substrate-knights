@@ -58,7 +58,7 @@ impl system::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: u128 = 500;
+    pub const ExistentialDeposit: u128 = 1;
     pub const MaxLocks: u32 = 50;
 }
 

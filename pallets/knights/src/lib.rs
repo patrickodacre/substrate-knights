@@ -144,6 +144,7 @@ pub mod pallet {
         KnightNotFound,
         KnightAlreadyExists,
         NotRightfulOwner,
+        KnightTransferFailed,
     }
 
     #[pallet::hooks]
@@ -160,42 +161,12 @@ pub mod pallet {
             id: u64,
             to: T::AccountId,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            let from = ensure_signed(origin)?;
 
             let owner = KnightToOwner::<T>::get(&id).ok_or(Error::<T>::KnightNotFound)?;
-            ensure!(owner == who, Error::<T>::NotRightfulOwner);
+            ensure!(owner == from, Error::<T>::NotRightfulOwner);
 
-            // you could argue this check really isn't needed;
-            // nevertheless, if we did want to check, we'd do it
-            // before writing to storage below.
-            if let Some(knight_ids) = OwnerToKnights::<T>::get(&to) {
-                match knight_ids.iter().position(|&k_id| k_id == id) {
-                    Some(_pos) => {
-                        return Err(Error::<T>::KnightAlreadyExists)?;
-                    }
-                    _ => {}
-                }
-            }
-
-            KnightToOwner::<T>::remove(id);
-            KnightToOwner::<T>::insert(id, &to);
-
-            let knight_id = OwnerToKnights::<T>::mutate(&owner, |ids| {
-                // mutable reference
-                let pos = ids
-                    .as_ref()
-                    .unwrap()
-                    .binary_search_by(|probe| probe.cmp(&id))
-                    .expect("Knight not found. Perhaps it was already transferred.");
-
-                let removed_knight_id = ids.as_mut().unwrap().remove(pos);
-
-                removed_knight_id
-            });
-
-            OwnerToKnights::<T>::append(&to, knight_id);
-
-            Self::deposit_event(Event::KnightTransferred(id, who, to));
+            Self::_transfer_knight(id, from, to)?;
 
             Ok(().into())
         }
@@ -224,7 +195,7 @@ pub mod pallet {
 
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
         pub fn buy_knight(origin: OriginFor<T>, knight_id: u64) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            let buyer = ensure_signed(origin)?;
 
             let knight = Knights::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
 
@@ -235,14 +206,16 @@ pub mod pallet {
 
             let owner = KnightToOwner::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
 
-            ensure!(owner != who, "You already own this Knight");
+            ensure!(owner != buyer, "You already own this Knight");
 
             <pallet_balances::Pallet<T> as Currency<_>>::transfer(
-                &who,
+                &buyer,
                 &owner,
                 knight.price,
                 frame_support::traits::ExistenceRequirement::KeepAlive,
             )?;
+
+            Self::_transfer_knight(knight_id, owner, buyer)?;
 
             Ok(().into())
         }
@@ -299,6 +272,44 @@ pub mod pallet {
 
             // Emit an event.
             Self::deposit_event(Event::KnightCreated(knight.id, owner));
+
+            Ok(())
+        }
+
+        fn _transfer_knight(
+            knight_id: u64,
+            from: T::AccountId,
+            to: T::AccountId,
+        ) -> Result<(), DispatchError> {
+            // you could argue this check really isn't needed;
+            // nevertheless, if we did want to check, we'd do it
+            // before writing to storage below.
+            if let Some(knight_ids) = OwnerToKnights::<T>::get(&to) {
+                match knight_ids.iter().position(|&k_id| k_id == knight_id) {
+                    Some(_pos) => {
+                        return Err(Error::<T>::KnightAlreadyExists)?;
+                    }
+                    _ => {}
+                }
+            }
+
+            KnightToOwner::<T>::remove(knight_id);
+            KnightToOwner::<T>::insert(knight_id, &to);
+
+            OwnerToKnights::<T>::mutate(&from, |ids| {
+                // mutable reference
+                let pos = ids
+                    .as_ref()
+                    .unwrap()
+                    .binary_search_by(|probe| probe.cmp(&knight_id))
+                    .expect("Knight not found. Perhaps it was already transferred.");
+
+                ids.as_mut().unwrap().remove(pos);
+            });
+
+            OwnerToKnights::<T>::append(&to, knight_id);
+
+            Self::deposit_event(Event::KnightTransferred(knight_id, from, to));
 
             Ok(())
         }
