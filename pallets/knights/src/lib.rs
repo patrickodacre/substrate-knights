@@ -77,7 +77,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn owner_to_knights)]
     pub type OwnerToKnights<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn owner_to_knight_count)]
@@ -299,12 +299,10 @@ pub mod pallet {
             OwnerToKnights::<T>::mutate(&from, |ids| {
                 // mutable reference
                 let pos = ids
-                    .as_ref()
-                    .unwrap()
                     .binary_search_by(|probe| probe.cmp(&knight_id))
                     .expect("Knight not found. Perhaps it was already transferred.");
 
-                ids.as_mut().unwrap().remove(pos);
+                ids.remove(pos);
             });
 
             OwnerToKnights::<T>::append(&to, knight_id);

@@ -17,7 +17,7 @@ fn can_create_knight() {
 
         assert_eq!(k.name, name.as_bytes().to_vec());
 
-        let knight_ids = KnightModule::owner_to_knights(&1).unwrap();
+        let knight_ids = KnightModule::owner_to_knights(&1);
         assert_eq!(knight_ids.len(), 1);
 
         let owner_knight_count = KnightModule::owner_to_knight_count(&1);
@@ -167,7 +167,7 @@ fn can_get_owners_knights() {
             "Sir Evan".as_bytes().to_vec()
         ));
 
-        let knights = KnightModule::owner_to_knights(&1).unwrap();
+        let knights = KnightModule::owner_to_knights(&1);
 
         assert_eq!(knights.len(), 3);
 
@@ -224,19 +224,16 @@ fn can_transfer_knight() {
 
         let owner = KnightModule::knight_to_owner(&1).unwrap();
         assert_eq!(owner, 1);
-        let knights = KnightModule::owner_to_knights(&1).unwrap();
+        let knights = KnightModule::owner_to_knights(&1);
         assert_eq!(knights.len(), 2);
-        let knights = KnightModule::owner_to_knights(&2).unwrap_or(Vec::<u64>::new());
+        let knights = KnightModule::owner_to_knights(&2);
         assert_eq!(knights.len(), 0);
 
         KnightModule::transfer_knight(Origin::signed(1), 1, 2).unwrap();
 
-        let owner = KnightModule::knight_to_owner(&1).unwrap();
-        assert_eq!(owner, 2);
-        let knights = KnightModule::owner_to_knights(&1).unwrap();
-        assert_eq!(knights.len(), 1);
-        let knights = KnightModule::owner_to_knights(&2).unwrap();
-        assert_eq!(knights.len(), 1);
+        assert_eq!(KnightModule::knight_to_owner(&1).unwrap(), 2);
+        assert_eq!(KnightModule::owner_to_knights(&1).len(), 1);
+        assert_eq!(KnightModule::owner_to_knights(&2).len(), 1);
     });
 }
 
