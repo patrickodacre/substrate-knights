@@ -156,7 +156,7 @@ pub mod pallet {
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(3, 4))]
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(4, 6))]
         pub fn transfer_knight(
             origin: OriginFor<T>,
             id: u64,
@@ -194,7 +194,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(6,8))]
         pub fn buy_knight(origin: OriginFor<T>, knight_id: u64) -> DispatchResultWithPostInfo {
             let buyer = ensure_signed(origin)?;
 
