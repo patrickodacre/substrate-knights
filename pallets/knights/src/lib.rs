@@ -62,7 +62,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn knight_count)]
-    pub type KnightCount<T: Config> = StorageValue<_, u64, OptionQuery>;
+    pub type KnightCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn knights)]
@@ -250,7 +250,7 @@ pub mod pallet {
             // https://substrate.dev/docs/en/knowledgebase/runtime/origin
             let who = ensure_signed(origin)?;
 
-            let latest_id = KnightCount::<T>::get().unwrap_or(0);
+            let latest_id = KnightCount::<T>::get();
 
             let new_id = latest_id
                 .checked_add(1)
