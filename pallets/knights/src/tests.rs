@@ -44,8 +44,7 @@ fn can_buy_knight() {
         assert_eq!(Balances::free_balance(&1), 20);
         assert_eq!(Balances::free_balance(&2), 30);
 
-        let owner = KnightModule::knight_to_owner(&1).unwrap();
-        assert_eq!(owner, 2);
+        assert_eq!(KnightModule::knight_to_owner(&1).unwrap(), 2);
     });
 }
 
@@ -57,20 +56,14 @@ fn cannot_buy_knight_with_insufficient_funds() {
             "Sir Rowan".as_bytes().to_vec()
         ));
 
-        KnightModule::set_price(Origin::signed(1), 1, 100).unwrap();
+        KnightModule::set_price(Origin::signed(1), 1, 10).unwrap();
 
-        Balances::make_free_balance_be(&1, 100);
-        Balances::make_free_balance_be(&2, 100);
+        Balances::make_free_balance_be(&2, 5);
 
-        let fb = Balances::free_balance(&2);
-        let tb = Balances::total_balance(&2);
-
-        println!("free balance {:?}", fb);
-        println!("total balance {:?}", tb);
-        // assert_err!(
-        // KnightModule::buy_knight(Origin::signed(2), 1),
-        // BalancesError::<Test>::InsufficientBalance,
-        // );
+        assert_err!(
+            KnightModule::buy_knight(Origin::signed(2), 1),
+            BalancesError::<Test>::InsufficientBalance,
+        );
     });
 }
 
@@ -222,18 +215,17 @@ fn can_transfer_knight() {
             "Sir Rowan of Chessington".as_bytes().to_vec()
         ));
 
-        let owner = KnightModule::knight_to_owner(&1).unwrap();
-        assert_eq!(owner, 1);
-        let knights = KnightModule::owner_to_knights(&1);
-        assert_eq!(knights.len(), 2);
-        let knights = KnightModule::owner_to_knights(&2);
-        assert_eq!(knights.len(), 0);
+        assert_eq!(KnightModule::knight_to_owner(&1).unwrap(), 1);
+        assert_eq!(KnightModule::owner_to_knights(&1).len(), 2);
+        assert_eq!(KnightModule::owner_to_knights(&2).len(), 0);
+        assert_eq!(KnightModule::owner_to_knight_count(&2), 0);
 
         KnightModule::transfer_knight(Origin::signed(1), 1, 2).unwrap();
 
         assert_eq!(KnightModule::knight_to_owner(&1).unwrap(), 2);
         assert_eq!(KnightModule::owner_to_knights(&1).len(), 1);
         assert_eq!(KnightModule::owner_to_knights(&2).len(), 1);
+        assert_eq!(KnightModule::owner_to_knight_count(&2), 1);
     });
 }
 

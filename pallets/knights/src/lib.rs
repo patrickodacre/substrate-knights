@@ -167,7 +167,7 @@ pub mod pallet {
             let owner = KnightToOwner::<T>::get(&id).ok_or(Error::<T>::KnightNotFound)?;
             ensure!(owner == from, Error::<T>::NotRightfulOwner);
 
-            Self::_transfer_knight(id, from, to)?;
+            Self::_transfer_knight(id, from, to).expect("Transfers Knight");
 
             Ok(().into())
         }
@@ -198,13 +198,19 @@ pub mod pallet {
         pub fn buy_knight(origin: OriginFor<T>, knight_id: u64) -> DispatchResultWithPostInfo {
             let buyer = ensure_signed(origin)?;
 
-            let knight = Knights::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
+            // Before we send our tokens we have to make sure
+            // our transfer of the knight won't fail. If it were to fail
+            // the owner / seller of the knight would still have the tokens.
+
+            // the knight exists
+            let mut knight = Knights::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
 
             ensure!(
                 !knight.price.is_zero(),
                 "The knight you want to buy isn't for sale."
             );
 
+            // we'll send funds to the owner of the knight
             let owner = KnightToOwner::<T>::get(knight_id).ok_or(Error::<T>::KnightNotFound)?;
 
             ensure!(owner != buyer, "You already own this Knight");
@@ -216,7 +222,21 @@ pub mod pallet {
                 frame_support::traits::ExistenceRequirement::KeepAlive,
             )?;
 
-            Self::_transfer_knight(knight_id, owner, buyer)?;
+            // NOTE on underflow and overflow::
+            // Since these counts are set when a Knight is
+            // minted if a user owns a Knight, then his count
+            // will always be >= 1.
+            // as for the buyer, his knight count will never exceed
+            // the total number of knights minted. Since they are
+            // both u64, we can be certain that an overflow will never occur.
+            // All that said, it's typical to see .expect() statements
+            // in Substrate code to document why something will never fail.
+            Self::_transfer_knight(knight_id, owner, buyer).expect("Transfers Knight");
+
+            // update price to zero so this Knight cannot be purchased again
+            // until the new owner decides.
+            knight.price = T::Balance::zero();
+            Knights::<T>::insert(knight_id, &knight);
 
             Ok(().into())
         }
@@ -310,6 +330,9 @@ pub mod pallet {
 
             OwnerToKnights::<T>::append(&to, knight_id);
 
+            // these underflow / overflows aren't possible,
+            // so at the call site of this function, we use an .expect()
+            // to document why this function will never fail.
             let from_count = OwnerToKnightCount::<T>::get(&from);
             let new_from_count = from_count
                 .checked_sub(1)
