@@ -141,6 +141,7 @@ pub mod pallet {
         /// Knight Count Overflow
         KnightCountOverflow,
         OwnerToKnightCountOverflow,
+        OwnerToKnightCountUnderflow,
         KnightNotFound,
         KnightAlreadyExists,
         NotRightfulOwner,
@@ -296,6 +297,7 @@ pub mod pallet {
             KnightToOwner::<T>::remove(knight_id);
             KnightToOwner::<T>::insert(knight_id, &to);
 
+            // remove the knight_id from owner's list of knight ids
             OwnerToKnights::<T>::mutate(&from, |ids| {
                 // mutable reference
                 let pos = ids
@@ -306,6 +308,18 @@ pub mod pallet {
             });
 
             OwnerToKnights::<T>::append(&to, knight_id);
+
+            let from_count = OwnerToKnightCount::<T>::get(&from);
+            let new_from_count = from_count
+                .checked_sub(1)
+                .ok_or(Error::<T>::OwnerToKnightCountUnderflow)?;
+            OwnerToKnightCount::<T>::insert(&from, new_from_count);
+
+            let to_count = OwnerToKnightCount::<T>::get(&to);
+            let new_to_count = to_count
+                .checked_add(1)
+                .ok_or(Error::<T>::OwnerToKnightCountOverflow)?;
+            OwnerToKnightCount::<T>::insert(&to, new_to_count);
 
             Self::deposit_event(Event::KnightTransferred(knight_id, from, to));
 
