@@ -1,4 +1,7 @@
 use crate::{mock::*, Error};
+use frame_support::traits::Currency;
+use pallet_balances::Error as BalancesError;
+
 use frame_support::{assert_err, assert_noop, assert_ok};
 
 #[test]
@@ -13,6 +16,96 @@ fn can_create_knight() {
         let k = KnightModule::knights(&1).unwrap();
 
         assert_eq!(k.name, name.as_bytes().to_vec());
+
+        let knight_ids = KnightModule::owner_to_knights(&1);
+        assert_eq!(knight_ids.len(), 1);
+
+        let owner_knight_count = KnightModule::owner_to_knight_count(&1);
+        assert_eq!(owner_knight_count, 1);
+    });
+}
+
+#[test]
+fn can_buy_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan".as_bytes().to_vec()
+        ));
+
+        Balances::make_free_balance_be(&2, 50);
+
+        assert_eq!(Balances::free_balance(&1), 0);
+        assert_eq!(Balances::free_balance(&2), 50);
+
+        KnightModule::set_price(Origin::signed(1), 1, 20).unwrap();
+        KnightModule::buy_knight(Origin::signed(2), 1).unwrap();
+
+        assert_eq!(Balances::free_balance(&1), 20);
+        assert_eq!(Balances::free_balance(&2), 30);
+
+        let owner = KnightModule::knight_to_owner(&1).unwrap();
+        assert_eq!(owner, 2);
+    });
+}
+
+#[test]
+fn cannot_buy_knight_with_insufficient_funds() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan".as_bytes().to_vec()
+        ));
+
+        KnightModule::set_price(Origin::signed(1), 1, 100).unwrap();
+
+        Balances::make_free_balance_be(&1, 100);
+        Balances::make_free_balance_be(&2, 100);
+
+        let fb = Balances::free_balance(&2);
+        let tb = Balances::total_balance(&2);
+
+        println!("free balance {:?}", fb);
+        println!("total balance {:?}", tb);
+        // assert_err!(
+        // KnightModule::buy_knight(Origin::signed(2), 1),
+        // BalancesError::<Test>::InsufficientBalance,
+        // );
+    });
+}
+
+#[test]
+fn can_set_price_for_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan".as_bytes().to_vec()
+        ));
+
+        KnightModule::set_price(Origin::signed(1), 1, 100).expect("cannot set price");
+        let sir_rowan = KnightModule::knights(1).unwrap();
+        assert_eq!(sir_rowan.price, 100);
+
+        KnightModule::set_price(Origin::signed(1), 1, 0).expect("cannot set price");
+        let sir_rowan = KnightModule::knights(1).unwrap();
+        assert_eq!(sir_rowan.price, 0);
+    });
+}
+
+#[test]
+fn non_owner_cannot_set_price_for_knight() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Cedric".as_bytes().to_vec(),
+        ));
+
+        let check = Origin::signed(1000);
+
+        assert_err!(
+            KnightModule::set_price(Origin::signed(10000), 1, 200),
+            Error::<Test>::NotRightfulOwner
+        );
     });
 }
 
@@ -74,7 +167,7 @@ fn can_get_owners_knights() {
             "Sir Evan".as_bytes().to_vec()
         ));
 
-        let knights = KnightModule::owner_to_knights(&1).unwrap();
+        let knights = KnightModule::owner_to_knights(&1);
 
         assert_eq!(knights.len(), 3);
 
@@ -111,8 +204,8 @@ fn knight_has_unique_id_even_with_identical_names_and_owners() {
         let sir_evan1 = KnightModule::knights(&1).unwrap();
         let sir_evan2 = KnightModule::knights(&2).unwrap();
 
-        println!("id is :: {:?}", sir_evan1.id);
         assert_ne!(sir_evan1.id, sir_evan2.id);
+        assert_ne!(sir_evan1.dna, sir_evan2.dna);
     });
 }
 
@@ -124,14 +217,23 @@ fn can_transfer_knight() {
             "Beric the Briton".as_bytes().to_vec()
         ));
 
-        let owner = KnightModule::knight_to_owner(&1).unwrap();
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Rowan of Chessington".as_bytes().to_vec()
+        ));
 
+        let owner = KnightModule::knight_to_owner(&1).unwrap();
         assert_eq!(owner, 1);
+        let knights = KnightModule::owner_to_knights(&1);
+        assert_eq!(knights.len(), 2);
+        let knights = KnightModule::owner_to_knights(&2);
+        assert_eq!(knights.len(), 0);
 
         KnightModule::transfer_knight(Origin::signed(1), 1, 2).unwrap();
 
-        let owner = KnightModule::knight_to_owner(&1).unwrap();
-        assert_eq!(owner, 2);
+        assert_eq!(KnightModule::knight_to_owner(&1).unwrap(), 2);
+        assert_eq!(KnightModule::owner_to_knights(&1).len(), 1);
+        assert_eq!(KnightModule::owner_to_knights(&2).len(), 1);
     });
 }
 
