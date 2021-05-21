@@ -285,13 +285,14 @@ pub mod pallet {
             // you could argue this check really isn't needed;
             // nevertheless, if we did want to check, we'd do it
             // before writing to storage below.
-            if let Some(knight_ids) = OwnerToKnights::<T>::get(&to) {
-                match knight_ids.iter().position(|&k_id| k_id == knight_id) {
-                    Some(_pos) => {
-                        return Err(Error::<T>::KnightAlreadyExists)?;
-                    }
-                    _ => {}
+            match OwnerToKnights::<T>::get(&to)
+                .iter()
+                .position(|&k_id| k_id == knight_id)
+            {
+                Some(_pos) => {
+                    return Err(Error::<T>::KnightAlreadyExists)?;
                 }
+                _ => {}
             }
 
             KnightToOwner::<T>::remove(knight_id);
