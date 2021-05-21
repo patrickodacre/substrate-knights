@@ -49,6 +49,23 @@ fn can_buy_knight() {
 }
 
 #[test]
+fn knight_price_returns_to_zero_after_purchase() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(1),
+            "Sir Bentley".as_bytes().to_vec()
+        ));
+
+        assert_ok!(KnightModule::set_price(Origin::signed(1), 1, 10));
+
+        Balances::make_free_balance_be(&2, 50);
+
+        assert_ok!(KnightModule::buy_knight(Origin::signed(2), 1));
+        assert_eq!(KnightModule::knights(1).unwrap().price, 0);
+    });
+}
+
+#[test]
 fn cannot_buy_knight_with_insufficient_funds() {
     new_test_ext().execute_with(|| {
         assert_ok!(KnightModule::create_knight(
