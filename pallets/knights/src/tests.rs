@@ -132,9 +132,7 @@ fn can_get_knight_count() {
             "Christian the Fearless".as_bytes().to_vec()
         ));
 
-        let count = KnightModule::knight_count().unwrap();
-
-        assert_eq!(count, 2);
+        assert_eq!(KnightModule::knight_count(), 2);
     });
 }
 
@@ -151,11 +149,8 @@ fn can_get_knights_owner() {
             "Daniel the Courageous".as_bytes().to_vec()
         ));
 
-        let owner = KnightModule::knight_to_owner(&1).unwrap();
-        assert_eq!(owner, 1);
-
-        let owner = KnightModule::knight_to_owner(&2).unwrap();
-        assert_eq!(owner, 1);
+        assert_eq!(KnightModule::knight_to_owner(&1).unwrap(), 1);
+        assert_eq!(KnightModule::knight_to_owner(&2).unwrap(), 1);
     });
 }
 
@@ -236,6 +231,10 @@ fn can_transfer_knight() {
         assert_eq!(KnightModule::owner_to_knights(&1).len(), 2);
         assert_eq!(KnightModule::owner_to_knights(&2).len(), 0);
         assert_eq!(KnightModule::owner_to_knight_count(&2), 0);
+
+        assert_eq!(KnightModule::knight_to_owner(&1).unwrap(), 1);
+        assert_eq!(KnightModule::owner_to_knights(&1).len(), 2);
+        assert_eq!(KnightModule::owner_to_knights(&2).len(), 0);
 
         KnightModule::transfer_knight(Origin::signed(1), 1, 2).unwrap();
 
