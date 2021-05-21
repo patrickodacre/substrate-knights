@@ -1,5 +1,6 @@
 use crate as pallet_knights;
 use frame_support::parameter_types;
+use frame_support::traits::TestRandomness;
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -78,6 +79,7 @@ impl pallet_balances::Config for Test {
 impl pallet_knights::Config for Test {
     type Event = Event;
     type Currency = Balances;
+    type RandomnessSource = TestRandomness;
 }
 
 // Build genesis storage according to the mock runtime.

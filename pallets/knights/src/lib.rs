@@ -25,6 +25,8 @@ pub mod pallet {
     use serde::{Deserialize, Serialize};
 
     use frame_support::traits::Currency;
+    use frame_support::traits::Randomness;
+    use sp_core::H256;
     use sp_runtime::traits::Zero;
 
     // thx to macro magic, we get to directly call this trait function
@@ -39,6 +41,7 @@ pub mod pallet {
         // type Currency: Currency<<Self as frame_system::Config>::AccountId>;
         // or...
         type Currency: Currency<Self::AccountId>;
+        type RandomnessSource: Randomness<H256>;
     }
 
     #[pallet::pallet]
@@ -133,6 +136,8 @@ pub mod pallet {
         KnightTransferred(u64, T::AccountId, T::AccountId),
         /// [knight_id, price]
         KnightPriceSet(u64, T::Balance),
+        /// [new_knight_id, knight_1_id, knight_2_id, account_id]
+        SquireKnighted(u64, u64, u64, T::AccountId),
     }
 
     // Errors inform users that something went wrong.
@@ -190,6 +195,61 @@ pub mod pallet {
             Knights::<T>::insert(knight_id, knight);
 
             Self::deposit_event(Event::KnightPriceSet(knight_id, price));
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        pub fn knight_squire(
+            origin: OriginFor<T>,
+            squire_name: Vec<u8>,
+            knight_id_1: u64,
+            knight_id_2: u64,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            let latest_id = KnightCount::<T>::get();
+            let new_id = latest_id
+                .checked_add(1)
+                .ok_or(Error::<T>::KnightCountOverflow)?;
+
+            ensure!(
+                !Knights::<T>::contains_key(new_id),
+                Error::<T>::KnightAlreadyExists
+            );
+
+            let mut knight_1 = Knights::<T>::get(knight_id_1).ok_or(Error::<T>::KnightNotFound)?;
+            let mut knight_2 = Knights::<T>::get(knight_id_2).ok_or(Error::<T>::KnightNotFound)?;
+
+            &knight_1.name.append(&mut knight_2.name);
+
+            let random_hash = T::RandomnessSource::random(&knight_1.name);
+
+            let mut final_dna = knight_1.dna;
+            for (i, (dna_2_element, r)) in knight_2
+                .dna
+                .as_ref()
+                .iter()
+                .zip(random_hash.as_ref().iter())
+                .enumerate()
+            {
+                if r % 2 == 0 {
+                    final_dna.as_mut()[i] = *dna_2_element;
+                }
+            }
+
+            let knight = Knight {
+                id: new_id,
+                dna: final_dna,
+                name: squire_name,
+                wealth: T::Balance::zero(),
+                price: T::Balance::zero(),
+                gen: knight_1.gen,
+            };
+
+            Self::_mint(&who, knight)?;
+
+            Self::deposit_event(Event::SquireKnighted(new_id, knight_1.id, knight_2.id, who));
 
             Ok(().into())
         }
@@ -271,28 +331,29 @@ pub mod pallet {
                 gen: 0,
             };
 
-            Self::_mint(who, knight)?;
+            Self::_mint(&who, knight)?;
 
             return Ok(().into());
         }
     }
 
     impl<T: Config> Pallet<T> {
-        fn _mint(owner: T::AccountId, knight: Knight<T::Balance>) -> Result<(), &'static str> {
-            Knights::<T>::insert(knight.id, &knight);
-            KnightCount::<T>::put(knight.id);
-            KnightToOwner::<T>::insert(knight.id, &owner);
-            OwnerToKnights::<T>::append(&owner, knight.id);
+        fn _mint(owner: &T::AccountId, knight: Knight<T::Balance>) -> Result<(), &'static str> {
+            let knight_id = knight.id;
 
-            let current_owner_to_knight_count = OwnerToKnightCount::<T>::get(&owner);
+            Knights::<T>::insert(knight.id, knight);
+            KnightCount::<T>::put(knight_id);
+            KnightToOwner::<T>::insert(knight_id, owner);
+            OwnerToKnights::<T>::append(owner, knight_id);
+
+            let current_owner_to_knight_count = OwnerToKnightCount::<T>::get(owner);
             let new_count = current_owner_to_knight_count
                 .checked_add(1)
                 .ok_or(Error::<T>::OwnerToKnightCountOverflow)?;
 
-            OwnerToKnightCount::<T>::insert(&owner, new_count);
+            OwnerToKnightCount::<T>::insert(owner, new_count);
 
-            // Emit an event.
-            Self::deposit_event(Event::KnightCreated(knight.id, owner));
+            Self::deposit_event(Event::KnightCreated(knight_id, owner.clone()));
 
             Ok(())
         }

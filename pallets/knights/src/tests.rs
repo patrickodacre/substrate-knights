@@ -269,3 +269,41 @@ fn cannot_transfer_non_existant_knight() {
         );
     });
 }
+
+#[test]
+fn can_knight_a_squire() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(2),
+            "Sir Evan".as_bytes().to_vec()
+        ));
+
+        assert_ok!(KnightModule::create_knight(
+            Origin::signed(2),
+            "Sir Christian".as_bytes().to_vec()
+        ));
+
+        assert_eq!(KnightModule::knight_count(), 2);
+
+        let knight_1_id = 1;
+        let knight_2_id = 2;
+
+        assert_ok!(KnightModule::knight_squire(
+            Origin::signed(1),
+            "Sir Daniel".as_bytes().to_vec(),
+            knight_1_id,
+            knight_2_id
+        ));
+
+        assert_eq!(KnightModule::knight_count(), 3);
+
+        let sir_daniel = KnightModule::knights(3).unwrap();
+        assert_eq!(sir_daniel.name, "Sir Daniel".as_bytes().to_vec());
+
+        let sir_evan = KnightModule::knights(1).unwrap();
+        let sir_christian = KnightModule::knights(2).unwrap();
+
+        assert_ne!(sir_evan.dna, sir_daniel.dna);
+        assert_ne!(sir_christian.dna, sir_daniel.dna);
+    });
+}
