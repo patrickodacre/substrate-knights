@@ -21,7 +21,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Module, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        KnightModule: pallet_knights::{Module, Call, Storage, Config<T>, Event<T>},
+        KnightModule: pallet_knights::{Module, Call, Storage, Event<T>},
     }
 );
 
@@ -84,19 +84,8 @@ impl pallet_knights::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
-    let t = GenesisConfig {
-        // We use default for brevity, but you can configure as desired if needed.
-        frame_system: Default::default(),
-        pallet_balances: Default::default(),
-        pallet_knights: Some(pallet_knights::GenesisConfig {
-            thing: 42,
-            knights: vec![],
-            // we configure the map with (key, value) pairs.
-            // bar: vec![(1, 2), (2, 3)],
-            // foo: 24,
-        }),
-    }
-    .build_storage()
-    .unwrap();
-    t.into()
+    system::GenesisConfig::default()
+        .build_storage::<Test>()
+        .unwrap()
+        .into()
 }
