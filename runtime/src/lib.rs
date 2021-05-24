@@ -274,8 +274,9 @@ impl pallet_template::Config for Runtime {
 }
 
 impl pallet_knights::Config for Runtime {
-    type Balance = Balance;
     type Event = Event;
+    type Currency = Balances;
+    type RandomnessSource = RandomnessCollectiveFlip;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
