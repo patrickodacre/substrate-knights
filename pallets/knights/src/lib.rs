@@ -301,6 +301,42 @@ pub mod pallet {
             return Ok(().into());
         }
     }
+    // end pallet::call
+
+    // The genesis config type.
+    #[pallet::genesis_config]
+    pub struct GenesisConfig {
+        pub thing: u64,
+        // pub dummy: T::Balance,
+        // pub bar: Vec<(T::AccountId, T::Balance)>,
+        // pub foo: T::Balance,
+    }
+
+    // The default value for the genesis config type.
+    #[cfg(feature = "std")]
+    impl Default for GenesisConfig {
+        fn default() -> Self {
+            Self {
+                thing: Default::default(),
+                // dummy: Default::default(),
+                // bar: Default::default(),
+                // foo: Default::default(),
+            }
+        }
+    }
+
+    // The build of genesis for the pallet.
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            Thing::<T>::put(100);
+            // <Dummy<T>>::put(&self.dummy);
+            // for (a, b) in &self.bar {
+            // <Bar<T>>::insert(a, b);
+            // }
+            // <Foo<T>>::put(&self.foo);
+        }
+    }
 
     impl<T: Config> Pallet<T> {
         fn _mint(owner: &T::AccountId, knight: Knight<T::Balance>) -> Result<(), &'static str> {
