@@ -87,46 +87,6 @@ pub mod pallet {
     pub type OwnerToKnightCount<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
 
-    // The genesis config type.
-    #[pallet::genesis_config]
-    pub struct GenesisConfig<T: Config> {
-        pub thing: u64,
-        // pub bar: Vec<(T::AccountId, T::Balance)>,
-        pub knights: Vec<(u64, Knight<T::Balance>)>,
-    }
-
-    // The default value for the genesis config type.
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self {
-                thing: Default::default(),
-                // bar: Default::default(),
-                knights: Default::default(),
-            }
-        }
-    }
-
-    // The build of genesis for the pallet.
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-        fn build(&self) {
-            <Thing<T>>::put(&self.thing);
-            for (id, account_id) in &self.knights {
-                let knight = Knight {
-                    id: 1,
-                    name: "OriginKnight".as_bytes().to_vec(),
-                    dna: (1).using_encoded(blake2_128),
-                    wealth: 0u8.into(),
-                    price: 0u8.into(),
-                    gen: 0,
-                };
-
-                Knights::<T>::insert(id, knight);
-            }
-        }
-    }
-
     #[pallet::event]
     #[pallet::metadata(T::AccountId = "AccountId")]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
