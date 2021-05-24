@@ -22,7 +22,6 @@ pub mod pallet {
     use frame_support::traits::Vec;
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
-    use serde::{Deserialize, Serialize};
 
     use frame_support::traits::Currency;
     use frame_support::traits::Randomness;
@@ -48,7 +47,7 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
-    #[derive(Encode, Decode, Deserialize, Serialize, Clone, PartialEq, Eq)]
+    #[derive(Encode, Decode, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "std", derive(Debug))]
     pub struct Knight<Balance> {
         pub id: u64,
@@ -111,6 +110,7 @@ pub mod pallet {
         KnightAlreadyExists,
         NotRightfulOwner,
         KnightTransferFailed,
+        KnightGenOverflow,
     }
 
     #[pallet::hooks]
@@ -198,13 +198,18 @@ pub mod pallet {
                 }
             }
 
+            let new_gen = knight_1
+                .gen
+                .checked_add(1)
+                .ok_or(Error::<T>::KnightGenOverflow)?;
+
             let knight = Knight {
                 id: new_id,
                 dna: final_dna,
                 name: squire_name,
                 wealth: T::Balance::zero(),
                 price: T::Balance::zero(),
-                gen: knight_1.gen,
+                gen: new_gen,
             };
 
             Self::_mint(&who, knight)?;

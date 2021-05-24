@@ -300,6 +300,7 @@ fn can_knight_a_squire() {
 
         let sir_daniel = KnightModule::knights(3).unwrap();
         assert_eq!(sir_daniel.name, "Sir Daniel".as_bytes().to_vec());
+        assert_eq!(sir_daniel.gen, 2);
 
         let sir_evan = KnightModule::knights(1).unwrap();
         let sir_christian = KnightModule::knights(2).unwrap();
