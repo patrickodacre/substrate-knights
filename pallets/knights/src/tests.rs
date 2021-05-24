@@ -16,6 +16,7 @@ fn can_create_knight() {
         let k = KnightModule::knights(&1).unwrap();
 
         assert_eq!(k.name, name.as_bytes().to_vec());
+        assert_eq!(k.gen, 1);
 
         let knight_ids = KnightModule::owner_to_knights(&1);
         assert_eq!(knight_ids.len(), 1);

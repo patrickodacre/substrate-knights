@@ -288,7 +288,7 @@ pub mod pallet {
                 dna: (new_id, &who).using_encoded(blake2_128),
                 wealth: 0u8.into(),
                 price: 0u8.into(),
-                gen: 0,
+                gen: 1,
             };
 
             Self::_mint(&who, knight)?;
