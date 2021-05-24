@@ -305,8 +305,9 @@ pub mod pallet {
 
     // The genesis config type.
     #[pallet::genesis_config]
-    pub struct GenesisConfig {
+    pub struct GenesisConfig<T: Config> {
         pub thing: u64,
+        pub alice: T::AccountId,
         // pub dummy: T::Balance,
         // pub bar: Vec<(T::AccountId, T::Balance)>,
         // pub foo: T::Balance,
@@ -314,10 +315,11 @@ pub mod pallet {
 
     // The default value for the genesis config type.
     #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
+    impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
                 thing: Default::default(),
+                alice: Default::default(),
                 // dummy: Default::default(),
                 // bar: Default::default(),
                 // foo: Default::default(),
@@ -327,9 +329,21 @@ pub mod pallet {
 
     // The build of genesis for the pallet.
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
             Thing::<T>::put(100);
+
+            let knight = Knight {
+                id: 1,
+                name: "Danny the Daring".as_bytes().to_vec(),
+                dna: (1).using_encoded(blake2_128),
+                wealth: 0u8.into(),
+                price: 0u8.into(),
+                gen: 1,
+            };
+
+            Pallet::<T>::_mint(&self.alice, knight).unwrap();
+
             // <Dummy<T>>::put(&self.dummy);
             // for (a, b) in &self.bar {
             // <Bar<T>>::insert(a, b);

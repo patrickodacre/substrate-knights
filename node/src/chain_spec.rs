@@ -162,6 +162,7 @@ fn testnet_genesis(
         }),
         pallet_knights: Some(KnightModuleConfig {
             thing: Default::default(),
+            alice: endowed_accounts.get(0).unwrap().clone(),
         }),
     }
 }
