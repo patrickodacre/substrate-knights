@@ -1,8 +1,14 @@
 use crate::{mock::*, Error};
 use frame_support::traits::Currency;
+use frame_support::traits::RefCell;
 use pallet_balances::Error as BalancesError;
+use sp_core::H256;
 
 use frame_support::{assert_err, assert_noop, assert_ok};
+
+thread_local! {
+    static RANDOM_PAYLOAD: RefCell<H256> = RefCell::new(Default::default());
+}
 
 fn last_event() -> Event {
     System::events().last().unwrap().event.clone()
