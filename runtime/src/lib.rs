@@ -109,7 +109,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_version: 100,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 1,
+    transaction_version: 1, // helps hardware wallets understand if the call methods have been updated, thus changing the API
 };
 
 /// This determines the average expected block time that we are targeting.
