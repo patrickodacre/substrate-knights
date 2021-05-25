@@ -23,10 +23,11 @@ pub mod pallet {
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
 
+    use frame_support::dispatch::Parameter;
     use frame_support::traits::Currency;
     use frame_support::traits::Randomness;
     use sp_core::H256;
-    use sp_runtime::traits::Zero;
+    use sp_runtime::traits::{AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, One, Zero};
 
     // thx to macro magic, we get to directly call this trait function
     use sp_io::hashing::blake2_128;
@@ -41,6 +42,15 @@ pub mod pallet {
         // or...
         type Currency: Currency<Self::AccountId>;
         type RandomnessSource: Randomness<H256>;
+        type KnightIndex: Parameter
+            + AtLeast32BitUnsigned
+            + Default
+            + Copy
+            + Bounded
+            + CheckedAdd
+            + CheckedSub
+            + Encode
+            + Decode;
     }
 
     #[pallet::pallet]
@@ -49,8 +59,8 @@ pub mod pallet {
 
     #[derive(Encode, Decode, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "std", derive(Debug))]
-    pub struct Knight<Balance> {
-        pub id: u64,
+    pub struct Knight<Balance, KnightIndex> {
+        pub id: KnightIndex,
         pub dna: [u8; 16],
         pub name: Vec<u8>,
         pub wealth: Balance,
@@ -67,19 +77,28 @@ pub mod pallet {
     pub type KnightCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn latest_knight_id)]
+    pub type LatestKnightId<T: Config> = StorageValue<_, T::KnightIndex, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn knights)]
-    pub type Knights<T: Config> =
-        StorageMap<_, Blake2_128Concat, u64, Knight<T::Balance>, OptionQuery>;
+    pub type Knights<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::KnightIndex,
+        Knight<T::Balance, T::KnightIndex>,
+        OptionQuery,
+    >;
 
     #[pallet::storage]
     #[pallet::getter(fn knight_to_owner)]
     pub type KnightToOwner<T: Config> =
-        StorageMap<_, Blake2_128Concat, u64, T::AccountId, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::KnightIndex, T::AccountId, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn owner_to_knights)]
     pub type OwnerToKnights<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<u64>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<T::KnightIndex>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn owner_to_knight_count)]
@@ -87,16 +106,16 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
 
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId")]
+    #[pallet::metadata(T::AccountId = "AccountId", T::KnightIndex = "KnightIndex")]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        KnightCreated(u64, T::AccountId),
+        KnightCreated(T::KnightIndex, T::AccountId),
         /// [knight_id, from_account_id, to_account_id]
-        KnightTransferred(u64, T::AccountId, T::AccountId),
+        KnightTransferred(T::KnightIndex, T::AccountId, T::AccountId),
         /// [knight_id, price]
-        KnightPriceSet(u64, T::Balance),
+        KnightPriceSet(T::KnightIndex, T::Balance),
         /// [new_knight_id, knight_1_id, knight_2_id, account_id]
-        SquireKnighted(u64, u64, u64, T::AccountId),
+        SquireKnighted(T::KnightIndex, T::KnightIndex, T::KnightIndex, T::AccountId),
     }
 
     // Errors inform users that something went wrong.
@@ -104,6 +123,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Knight Count Overflow
         KnightCountOverflow,
+        KnightIdOverflow,
         OwnerToKnightCountOverflow,
         OwnerToKnightCountUnderflow,
         KnightNotFound,
@@ -124,7 +144,7 @@ pub mod pallet {
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(4, 6))]
         pub fn transfer_knight(
             origin: OriginFor<T>,
-            id: u64,
+            id: T::KnightIndex,
             to: T::AccountId,
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
@@ -140,7 +160,7 @@ pub mod pallet {
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,1))]
         pub fn set_price(
             origin: OriginFor<T>,
-            knight_id: u64,
+            knight_id: T::KnightIndex,
             price: T::Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -163,18 +183,18 @@ pub mod pallet {
         pub fn knight_squire(
             origin: OriginFor<T>,
             squire_name: Vec<u8>,
-            knight_id_1: u64,
-            knight_id_2: u64,
+            knight_id_1: T::KnightIndex,
+            knight_id_2: T::KnightIndex,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            let latest_id = KnightCount::<T>::get();
-            let new_id = latest_id
-                .checked_add(1)
-                .ok_or(Error::<T>::KnightCountOverflow)?;
+            let latest_knight_id = LatestKnightId::<T>::get();
+            let next_knight_id = latest_knight_id
+                .checked_add(&One::one())
+                .ok_or(Error::<T>::KnightIdOverflow)?;
 
             ensure!(
-                !Knights::<T>::contains_key(new_id),
+                !Knights::<T>::contains_key(next_knight_id),
                 Error::<T>::KnightAlreadyExists
             );
 
@@ -204,7 +224,7 @@ pub mod pallet {
                 .ok_or(Error::<T>::KnightGenOverflow)?;
 
             let knight = Knight {
-                id: new_id,
+                id: next_knight_id,
                 dna: final_dna,
                 name: squire_name,
                 wealth: T::Balance::zero(),
@@ -214,13 +234,21 @@ pub mod pallet {
 
             Self::_mint(&who, knight)?;
 
-            Self::deposit_event(Event::SquireKnighted(new_id, knight_1.id, knight_2.id, who));
+            Self::deposit_event(Event::SquireKnighted(
+                next_knight_id,
+                knight_1.id,
+                knight_2.id,
+                who,
+            ));
 
             Ok(().into())
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(6,8))]
-        pub fn buy_knight(origin: OriginFor<T>, knight_id: u64) -> DispatchResultWithPostInfo {
+        pub fn buy_knight(
+            origin: OriginFor<T>,
+            knight_id: T::KnightIndex,
+        ) -> DispatchResultWithPostInfo {
             let buyer = ensure_signed(origin)?;
 
             // Before we send our tokens we have to make sure
@@ -275,22 +303,27 @@ pub mod pallet {
             // https://substrate.dev/docs/en/knowledgebase/runtime/origin
             let who = ensure_signed(origin)?;
 
-            let latest_id = KnightCount::<T>::get();
+            let current_count = KnightCount::<T>::get();
 
-            let new_id = latest_id
-                .checked_add(1)
+            let new_count = current_count
+                .checked_add(One::one())
                 .ok_or(Error::<T>::KnightCountOverflow)?;
+
+            let latest_knight_id = LatestKnightId::<T>::get();
+            let next_knight_id = latest_knight_id
+                .checked_add(&One::one())
+                .ok_or(Error::<T>::KnightIdOverflow)?;
 
             // NOTE:: how to test this?
             ensure!(
-                !Knights::<T>::contains_key(new_id),
+                !Knights::<T>::contains_key(next_knight_id),
                 Error::<T>::KnightAlreadyExists
             );
 
             let knight = Knight {
-                id: new_id,
+                id: next_knight_id,
                 name,
-                dna: (new_id, &who).using_encoded(blake2_128),
+                dna: (new_count, &who).using_encoded(blake2_128),
                 wealth: 0u8.into(),
                 price: 0u8.into(),
                 gen: 1,
@@ -333,8 +366,11 @@ pub mod pallet {
         fn build(&self) {
             Thing::<T>::put(100);
 
+            let latest_knight_id = LatestKnightId::<T>::get();
+            let next_knight_id = latest_knight_id.checked_add(&One::one()).unwrap();
+
             let knight = Knight {
-                id: 1,
+                id: next_knight_id,
                 name: "Danny the Daring".as_bytes().to_vec(),
                 dna: (1).using_encoded(blake2_128),
                 wealth: 0u8.into(),
@@ -353,11 +389,19 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        fn _mint(owner: &T::AccountId, knight: Knight<T::Balance>) -> Result<(), &'static str> {
-            let knight_id = knight.id;
+        fn _mint(
+            owner: &T::AccountId,
+            knight: Knight<T::Balance, T::KnightIndex>,
+        ) -> Result<(), &'static str> {
+            let knight_id: T::KnightIndex = knight.id;
+
+            let current_count = KnightCount::<T>::get();
+            let new_count = current_count
+                .checked_add(One::one())
+                .ok_or(Error::<T>::KnightCountOverflow)?;
+            KnightCount::<T>::put(new_count);
 
             Knights::<T>::insert(knight.id, knight);
-            KnightCount::<T>::put(knight_id);
             KnightToOwner::<T>::insert(knight_id, owner);
             OwnerToKnights::<T>::append(owner, knight_id);
 
@@ -374,7 +418,7 @@ pub mod pallet {
         }
 
         fn _transfer_knight(
-            knight_id: u64,
+            knight_id: T::KnightIndex,
             from: T::AccountId,
             to: T::AccountId,
         ) -> Result<(), DispatchError> {
