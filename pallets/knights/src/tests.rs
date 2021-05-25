@@ -4,6 +4,10 @@ use pallet_balances::Error as BalancesError;
 
 use frame_support::{assert_err, assert_noop, assert_ok};
 
+fn last_event() -> Event {
+    System::events().last().unwrap().event.clone()
+}
+
 #[test]
 fn can_create_knight() {
     new_test_ext().execute_with(|| {
