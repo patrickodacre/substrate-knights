@@ -404,6 +404,7 @@ pub mod pallet {
             Knights::<T>::insert(knight.id, knight);
             KnightToOwner::<T>::insert(knight_id, owner);
             OwnerToKnights::<T>::append(owner, knight_id);
+            LatestKnightId::<T>::put(knight_id);
 
             let current_owner_to_knight_count = OwnerToKnightCount::<T>::get(owner);
             let new_count = current_owner_to_knight_count
